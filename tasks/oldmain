@@ -1,0 +1,70 @@
+- name: Обновить систему
+  apt:
+    update_cache: yes
+
+- name: Установить Docker и Docker Compose
+  apt:
+    name:
+      - docker.io
+      - docker-compose
+    state: present
+
+- name: Запустить и включить Docker
+  systemd:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Установить unzip и curl
+  apt:
+    name:
+      - unzip
+      - curl
+    state: present
+
+- name: Создать директорию под Harbor
+  file:
+    path: "{{ harbor_dir }}"
+    state: directory
+
+- name: Скачать Harbor
+  get_url:
+    url: "https://github.com/goharbor/harbor/releases/download/{{ harbor_version }}/harbor-online-installer-{{ harbor_version }}.tgz"
+    dest: "{{ harbor_dir }}/harbor.tgz"
+
+- name: Распаковать Harbor
+  unarchive:
+    src: "{{ harbor_dir }}/harbor.tgz"
+    dest: "{{ harbor_dir }}"
+    remote_src: yes
+
+- name: Скопировать harbor.yml.tmpl → harbor.yml
+  copy:
+    src: "{{ harbor_dir }}/harbor/harbor.yml.tmpl"
+    dest: "{{ harbor_dir }}/harbor/harbor.yml"
+    remote_src: yes
+
+- name: Создать каталог для SSL-сертификатов
+  file:
+    path: "{{ ssl_cert_path }}"
+    state: directory
+    mode: '0755'
+
+- name: Генерировать SSL-сертификат
+  shell: |
+    openssl req -newkey rsa:2048 -nodes -keyout {{ ssl_cert_path }}/server.key \
+    -x509 -days 365 -out {{ ssl_cert_path }}/server.crt \
+    -subj "/C=RU/ST=Some-State/O=Harbor/CN={{ harbor_ip }}"
+  args:
+    creates: "{{ ssl_cert_path }}/server.crt"
+
+- name: Сгенерировать harbor.yml из шаблона
+  template:
+    src: harbor.yml.j2
+    dest: "{{ harbor_dir }}/harbor/harbor.yml"
+
+- name: Установить Harbor
+  shell: ./install.sh
+  args:
+    chdir: "{{ harbor_dir }}/harbor"
+
