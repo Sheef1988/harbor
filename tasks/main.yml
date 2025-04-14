@@ -1,3 +1,7 @@
+- name: Set harbor_hostname to IP of enp0s8
+  ansible.builtin.set_fact:
+    harbor_hostname: "{{ ansible_enp0s8.ipv4.address }}"
+
 - name: Обновление системы
   apt:
     update_cache: yes

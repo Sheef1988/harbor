@@ -1,4 +1,4 @@
-harbor_hostname: "192.168.56.101"
+harbor_hostname: ""
 harbor_admin_password: "Harbor12345"
 harbor_db_password: "root123"
 harbor_cert_dir: "/data/cert"
